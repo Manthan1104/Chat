@@ -6,15 +6,16 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
-app.use(express.static('public'));
+
 
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Increase payload size limit for images
-app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
+app.use(express.json({ limit: '10mb' }));
+
 
 const MONGO_URI = process.env.MONGO_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
