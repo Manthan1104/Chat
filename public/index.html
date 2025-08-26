@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Chat</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen font-sans">
+    <div id="chat-container" class="w-full max-w-2xl h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl">
+        <header class="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50 rounded-t-2xl">
+            <h1 class="text-xl font-bold text-gray-800">Community Chat</h1>
+            <div id="user-info" class="flex items-center space-x-3">
+                <a href="/profile.html" id="display-username" class="font-semibold text-gray-700 hover:underline"></a>
+                <button id="logout-btn" class="text-xs text-red-500 hover:underline">Logout</button>
+            </div>
+        </header>
+        <div id="messages" class="flex-1 p-6 overflow-y-auto space-y-4"></div>
+        <form id="message-form" class="p-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+            <div class="flex items-center space-x-3">
+                <label for="image-input" class="p-3 cursor-pointer text-gray-500 hover:text-indigo-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                </label>
+                <input type="file" id="image-input" accept="image/*" class="hidden">
+                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" class="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                <button type="submit" class="p-3 font-semibold text-white bg-indigo-600 rounded-full hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition transform hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </form>
+    </div>
+    <script src="https://cdn.tailwindcss.com/"></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | Chat App</title>
+    <link rel="stylesheet" href="profile-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="profile-container">
+        <a href="/index.html" class="back-arrow">&larr; Back to Chat</a>
+        <div class="profile-header">
+            <div class="avatar-placeholder">
+                <span id="avatar-initial"></span>
+            </div>
+            <h1 id="profile-name"></h1>
+            <p id="profile-email"></p>
+        </div>
+        <div class="profile-details">
+            <h2>User Information</h2>
+            <div class="detail-item">
+                <span class="label">Date of Birth</span>
+                <span id="profile-dob" class="value"></span>
+            </div>
+            <div class="detail-item">
+                <span class="label">Joined On</span>
+                <span id="profile-joined" class="value"></span>
+            </div>
+        </div>
+    </div>
+    <script src="profile.js"></script>
+</body>
+</html>

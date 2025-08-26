@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | Chat App</title>
+    <link rel="stylesheet" href="auth-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-container signup">
+        <div class="decorative-corner"></div>
+        <a href="/login.html" class="back-arrow">&larr;</a>
+        <div class="form-wrapper">
+            <h2>Create new Account</h2>
+            <p class="subtitle">Already Registered? <a href="/login.html">Log in here.</a></p>
+            <form id="signup-form">
+                <div class="input-group">
+                    <label for="name">NAME</label>
+                    <input type="text" id="name" name="name" placeholder="Your Name" required>
+                </div>
+                <div class="input-group">
+                    <label for="email">EMAIL</label>
+                    <input type="email" id="email" name="email" placeholder="hello@example.com" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">PASSWORD</label>
+                    <input type="password" id="password" name="password" placeholder="********" required>
+                </div>
+                <!-- Robust Date of Birth Input -->
+                <div class="input-group">
+                    <label>DATE OF BIRTH</label>
+                    <div class="dob-group">
+                        <select id="dob-month" name="dob-month" required><option value="" disabled selected>Month</option></select>
+                        <select id="dob-day" name="dob-day" required><option value="" disabled selected>Day</option></select>
+                        <select id="dob-year" name="dob-year" required><option value="" disabled selected>Year</option></select>
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn">Sign up</button>
+            </form>
+        </div>
+    </div>
+    <script src="auth.js"></script>
+</body>
+</html>
