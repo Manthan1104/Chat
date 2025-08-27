@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('chat-token');
     const username = localStorage.getItem('chat-username');
+    const userRole = localStorage.getItem('chat-user-role'); // Get user role
 
     if (!token || !username) {
         window.location.href = '/login.html';
@@ -15,30 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageInput = document.getElementById('image-input');
 
     displayUsername.textContent = username;
-
     let ws;
-
-    messageForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        sendMessage();
-    });
-
-    logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('chat-token');
-        localStorage.removeItem('chat-username');
-        window.location.href = '/login.html';
-    });
-    
-    imageInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                sendMessage(null, event.target.result); // Send image as base64 string
-            };
-            reader.readAsDataURL(file);
-        }
-    });
 
     function connectWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -46,81 +24,109 @@ document.addEventListener('DOMContentLoaded', () => {
         ws = new WebSocket(`${protocol}//${host}`);
 
         ws.onopen = () => {
-            const joinMsg = { type: 'system', text: `${username} has joined the chat.` };
-            ws.send(JSON.stringify(joinMsg));
+            console.log('Connected to WebSocket server');
+            // Authenticate with the server, now including the role
+            ws.send(JSON.stringify({ type: 'authenticate', username: username, role: userRole }));
         };
 
         ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            switch (data.type) {
+            const message = JSON.parse(event.data);
+            switch (message.type) {
                 case 'history':
                     messages.innerHTML = '';
-                    data.data.forEach(msg => displayMessage(msg.username, msg.text, msg.image, msg.username === username));
-                    displaySystemMessage('Welcome to the chat!');
+                    message.data.forEach(msg => displayMessage(msg));
                     break;
                 case 'message':
-                    displayMessage(data.username, data.text, data.image, false);
+                    displayMessage(message.data);
                     break;
-                case 'system':
-                    displaySystemMessage(data.text);
+                case 'messageDeleted':
+                    const msgElement = document.getElementById(message.id);
+                    if (msgElement) msgElement.remove();
                     break;
             }
         };
 
-        ws.onclose = () => {
-            displaySystemMessage('Connection lost. Reconnecting...');
-            setTimeout(connectWebSocket, 3000);
-        };
+        ws.onclose = () => setTimeout(connectWebSocket, 3000);
     }
 
     function sendMessage(text = null, image = null) {
         const messageText = text === null ? messageInput.value.trim() : text;
         if ((messageText || image) && ws && ws.readyState === WebSocket.OPEN) {
-            const message = {
+            ws.send(JSON.stringify({
                 type: 'message',
                 username: username,
                 text: messageText,
                 image: image
-            };
-            ws.send(JSON.stringify(message));
-            if (!image) { // Only display our own text messages immediately
-                 displayMessage(username, messageText, null, true);
-            }
+            }));
             messageInput.value = '';
-            imageInput.value = ''; // Reset file input
+            imageInput.value = '';
         }
     }
 
-    function displayMessage(msgUsername, text, image, isOwnMessage) {
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('message', 'max-w-xs', 'md:max-w-md', 'p-3', 'rounded-xl', 'w-fit');
-        
-        let content = '';
-        if (image) {
-            content += `<img src="${image}" class="rounded-lg max-w-full h-auto my-2">`;
+    function deleteMessage(messageId) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'deleteMessage',
+                id: messageId,
+                username: username
+            }));
         }
-        if (text) {
-            content += `<p class="text-sm">${text}</p>`;
-        }
+    }
 
-        if (isOwnMessage) {
-            messageElement.classList.add('bg-indigo-600', 'text-white', 'self-end', 'ml-auto');
-            messageElement.innerHTML = content;
-        } else {
-            messageElement.classList.add('bg-gray-200', 'text-gray-800', 'self-start');
-            messageElement.innerHTML = `<p class="font-semibold text-sm text-indigo-800">${msgUsername}</p>${content}`;
+    function displayMessage(msg) {
+        const isOwnMessage = msg.username === username;
+        const isAdmin = userRole === 'admin';
+        const messageElement = document.createElement('div');
+        messageElement.id = msg._id;
+        messageElement.classList.add('message', 'flex', 'items-start', 'gap-3', isOwnMessage ? 'justify-end' : 'justify-start');
+
+        let content = `
+            <div class="flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}">
+                ${!isOwnMessage ? `<p class="font-semibold text-sm text-indigo-800">${msg.username}</p>` : ''}
+                <div class="message-bubble ${isOwnMessage ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-800'}">
+                    ${msg.image ? `<img src="${msg.image}" class="rounded-lg max-w-xs h-auto my-2">` : ''}
+                    ${msg.text ? `<p class="text-sm">${msg.text}</p>` : ''}
+                </div>
+            </div>
+        `;
+        
+        // Show delete button if it's your own message OR if you are an admin
+        if (isOwnMessage || isAdmin) {
+            content += `
+                <button class="delete-btn opacity-50 hover:opacity-100" data-id="${msg._id}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            `;
         }
+        
+        messageElement.innerHTML = content;
         messages.appendChild(messageElement);
         messages.scrollTop = messages.scrollHeight;
+
+        const deleteBtn = messageElement.querySelector('.delete-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => deleteMessage(deleteBtn.dataset.id));
+        }
     }
 
-    function displaySystemMessage(text) {
-        const systemMessageElement = document.createElement('div');
-        systemMessageElement.classList.add('text-center', 'my-2');
-        systemMessageElement.innerHTML = `<span class="text-xs text-gray-500 italic px-2 py-1 bg-gray-100 rounded-full">${text}</span>`;
-        messages.appendChild(systemMessageElement);
-        messages.scrollTop = messages.scrollHeight;
-    }
+    messageForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        sendMessage();
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        localStorage.clear();
+        window.location.href = '/login.html';
+    });
+    
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => sendMessage(null, event.target.result);
+            reader.readAsDataURL(file);
+        }
+    });
 
     connectWebSocket();
 });

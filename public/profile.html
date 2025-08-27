@@ -11,10 +11,16 @@
     <div class="profile-container">
         <a href="/index.html" class="back-arrow">&larr; Back to Chat</a>
         <div class="profile-header">
-            <div class="avatar-placeholder">
-                <span id="avatar-initial"></span>
+            <div class="avatar-container">
+                <img id="profile-picture" src="https://placehold.co/100x100/6366f1/ffffff?text=A" alt="Profile Picture" class="avatar-image">
+                <label for="picture-upload" class="avatar-edit-button">Edit</label>
+                <input type="file" id="picture-upload" accept="image/*" class="hidden">
             </div>
-            <h1 id="profile-name"></h1>
+            <div class="name-container">
+                <h1 id="profile-name"></h1>
+                <!-- This badge will be shown for admins -->
+                <span id="admin-badge" class="hidden">Admin</span>
+            </div>
             <p id="profile-email"></p>
         </div>
         <div class="profile-details">

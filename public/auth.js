@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     localStorage.setItem('chat-token', result.token);
                     localStorage.setItem('chat-username', result.name);
+                    localStorage.setItem('chat-user-role', result.role);
                     window.location.href = '/index.html';
                 } else {
                     showInlineError(loginForm, result.error || 'Login failed.');
@@ -153,3 +154,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+

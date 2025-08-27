@@ -7,15 +7,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-
-
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Increase payload size limit for images
-app.use(express.static('public'));
 app.use(express.json({ limit: '10mb' }));
-
+app.use(express.static('public'));
 
 const MONGO_URI = process.env.MONGO_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -28,7 +24,7 @@ mongoose.connect(MONGO_URI)
 const messageSchema = new mongoose.Schema({
     username: String,
     text: String,
-    image: String, // Field for base64 encoded image
+    image: String,
     timestamp: { type: Date, default: Date.now }
 });
 const Message = mongoose.model('Message', messageSchema);
@@ -38,16 +34,17 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     dob: { type: Date },
-    joined: { type: Date, default: Date.now } // New field for join date
+    joined: { type: Date, default: Date.now },
+    profilePicture: { type: String, default: '' },
+    role: { type: String, enum: ['user', 'admin'], default: 'user' }
 });
 const User = mongoose.model('User', userSchema);
 
-// --- Auth Middleware ---
+// --- Auth Middleware & API Routes ---
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
     if (token == null) return res.sendStatus(401);
-
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) return res.sendStatus(403);
         req.user = user;
@@ -55,7 +52,6 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
-// --- HTTP API Routes ---
 app.post('/api/signup', async (req, res) => {
     try {
         const { name, email, password, dob } = req.body;
@@ -67,7 +63,7 @@ app.post('/api/signup', async (req, res) => {
         if (error.code === 11000) {
             return res.status(409).json({ error: 'Username or email already exists.' });
         }
-        res.status(500).json({ error: 'An unexpected error occurred.' });
+        res.status(500).json({ error: 'An unexpected error occurred during registration.' });
     }
 });
 
@@ -78,28 +74,13 @@ app.post('/api/login', async (req, res) => {
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
-        const token = jwt.sign({ userId: user._id, name: user.name }, JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token, name: user.name });
+        const token = jwt.sign({ userId: user._id, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+        res.json({ token, name: user.name, role: user.role });
     } catch (error) {
         res.status(500).json({ error: 'Login failed' });
     }
 });
 
-app.post('/api/check-user', async (req, res) => {
-    try {
-        const { name, email } = req.body;
-        const queryConditions = [];
-        if (name && name.trim() !== '') queryConditions.push({ name: name.trim() });
-        if (email && email.trim() !== '') queryConditions.push({ email: email.trim() });
-        if (queryConditions.length === 0) return res.status(200).json({ exists: false });
-        const user = await User.findOne({ $or: queryConditions });
-        res.status(200).json({ exists: !!user });
-    } catch (error) {
-        res.status(500).json({ error: 'Server error during user check.' });
-    }
-});
-
-// New route to get user profile data
 app.get('/api/user/:name', authenticateToken, async (req, res) => {
     try {
         const user = await User.findOne({ name: req.params.name }).select('-password');
@@ -110,59 +91,112 @@ app.get('/api/user/:name', authenticateToken, async (req, res) => {
     }
 });
 
+app.post('/api/user/picture', authenticateToken, async (req, res) => {
+    try {
+        const { picture } = req.body;
+        await User.findOneAndUpdate({ name: req.user.name }, { profilePicture: picture });
+        res.json({ message: 'Profile picture updated successfully.' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update profile picture.' });
+    }
+});
+
+app.post('/api/check-user', async (req, res) => {
+    try {
+        const { name, email } = req.body;
+        const queryConditions = [];
+        if (name && name.trim() !== '') {
+            queryConditions.push({ name: name.trim() });
+        }
+        if (email && email.trim() !== '') {
+            queryConditions.push({ email: email.trim() });
+        }
+        if (queryConditions.length === 0) {
+            return res.status(200).json({ exists: false });
+        }
+        const user = await User.findOne({ $or: queryConditions });
+        res.status(200).json({ exists: !!user });
+    } catch (error) {
+        console.error("Check-user error:", error);
+        res.status(500).json({ error: 'Server error during user check.' });
+    }
+});
+
+
 // --- WebSocket Server ---
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
-const clients = new Set();
+const clients = new Map();
 
-wss.on('connection', async (ws) => {
+wss.on('connection', (ws) => {
     console.log('Client connected');
-    clients.add(ws);
-
-    try {
-        const history = await Message.find().sort({ timestamp: 1 }).limit(50).exec();
-        ws.send(JSON.stringify({ type: 'history', data: history }));
-    } catch (err) {
-        console.error('Error fetching chat history:', err);
-    }
 
     ws.on('message', async (message) => {
         let parsedMessage;
         try {
             parsedMessage = JSON.parse(message);
-        } catch (e) {
-            return;
-        }
+        } catch (e) { return; }
 
-        if (parsedMessage.type === 'message') {
-            const newMessage = new Message({
-                username: parsedMessage.username,
-                text: parsedMessage.text,
-                image: parsedMessage.image // Save image data
-            });
-            try {
+        switch(parsedMessage.type) {
+            case 'authenticate':
+                clients.set(parsedMessage.username, { ws, role: parsedMessage.role });
+                console.log(`${parsedMessage.username} (${parsedMessage.role}) authenticated.`);
+                try {
+                    const history = await Message.find().sort({ timestamp: -1 }).limit(50).exec();
+                    ws.send(JSON.stringify({ type: 'history', data: history.reverse() }));
+                } catch (err) { console.error('Error fetching history:', err); }
+                break;
+
+            case 'message':
+                const newMessage = new Message({
+                    username: parsedMessage.username,
+                    text: parsedMessage.text,
+                    image: parsedMessage.image
+                });
                 await newMessage.save();
-            } catch (err) {
-                console.error('Error saving message:', err);
-            }
+                broadcast({ type: 'message', data: newMessage });
+                break;
+
+            case 'deleteMessage':
+                try {
+                    const msgToDelete = await Message.findById(parsedMessage.id);
+                    const senderInfo = clients.get(parsedMessage.username);
+                    if (msgToDelete && (senderInfo.role === 'admin' || msgToDelete.username === parsedMessage.username)) {
+                        await Message.findByIdAndDelete(parsedMessage.id);
+                        broadcast({ type: 'messageDeleted', id: parsedMessage.id });
+                    }
+                } catch (err) { console.error('Error deleting message:', err); }
+                break;
+            
+            case 'clearChat':
+                try {
+                    const senderInfo = clients.get(parsedMessage.username);
+                    if (senderInfo && senderInfo.role === 'admin') {
+                        await Message.deleteMany({});
+                        broadcast({ type: 'chatCleared' });
+                        console.log(`Chat cleared by admin: ${parsedMessage.username}`);
+                    }
+                } catch (err) { console.error('Error clearing chat:', err); }
+                break;
         }
-        broadcast(JSON.stringify(parsedMessage), ws);
     });
 
     ws.on('close', () => {
-        console.log('Client disconnected');
-        clients.delete(ws);
-    });
-
-    ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
+        for (let [username, clientData] of clients.entries()) {
+            if (clientData.ws === ws) {
+                clients.delete(username);
+                console.log(`${username} disconnected.`);
+                break;
+            }
+        }
     });
 });
 
-function broadcast(message, sender) {
-    for (const client of clients) {
-        if (client !== sender && client.readyState === WebSocket.OPEN) {
-            client.send(message);
+function broadcast(message) {
+    const data = JSON.stringify(message);
+    for (const clientData of clients.values()) {
+        if (clientData.ws.readyState === WebSocket.OPEN) {
+            clientData.ws.send(data);
         }
     }
 }
