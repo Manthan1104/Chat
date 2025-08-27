@@ -8,37 +8,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const profilePicture = document.getElementById('profile-picture');
-    const pictureUpload = document.getElementById('picture-upload');
-
-    // Fetch user data on page load
     try {
         const response = await fetch(`/api/user/${username}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
 
         if (response.ok) {
             const user = await response.json();
+            const adminBadge = document.getElementById('admin-badge');
+            
             document.getElementById('profile-name').textContent = user.name;
             document.getElementById('profile-email').textContent = user.email;
-            
 
-            // Check the user's role and display the badge
+            // --- CORRECTED LOGIC ---
+            // Explicitly show or hide the badge based on the user's role
             if (user.role === 'admin') {
-                document.getElementById('admin-badge').classList.remove('hidden');
+                adminBadge.classList.remove('hidden');
+            } else {
+                adminBadge.classList.add('hidden');
             }
 
-
             if (user.profilePicture) {
-                profilePicture.src = user.profilePicture;
+                document.getElementById('profile-picture').src = user.profilePicture;
             } else {
-                profilePicture.src = `https://placehold.co/100x100/6366f1/ffffff?text=${user.name.charAt(0).toUpperCase()}`;
+                document.getElementById('profile-picture').src = `https://placehold.co/100x100/6366f1/ffffff?text=${user.name.charAt(0).toUpperCase()}`;
             }
 
             const dob = user.dob ? new Date(user.dob).toLocaleDateString() : 'Not provided';
             const joined = new Date(user.joined).toLocaleDateString();
             document.getElementById('profile-dob').textContent = dob;
             document.getElementById('profile-joined').textContent = joined;
+
         } else {
             alert('Could not load your profile.');
         }
@@ -46,7 +48,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Error fetching profile:', error);
     }
 
-    // Handle profile picture upload
+    // ... (picture upload logic remains the same)
+    const pictureUpload = document.getElementById('picture-upload');
     pictureUpload.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -65,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
 
                 if (response.ok) {
-                    profilePicture.src = base64String; // Update image on success
+                    document.getElementById('profile-picture').src = base64String;
                     alert('Profile picture updated!');
                 } else {
                     alert('Failed to update profile picture.');
