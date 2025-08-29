@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let content = `
             <div class="flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'}">
-                ${!isOwnMessage ? `<p class="font-semibold text-sm text-indigo-800">${msg.username}</p>` : ''}
+                ${!isOwnMessage ? `<a href="/profile.html?user=${msg.username}" class="font-semibold text-sm text-indigo-800 hover:underline">${msg.username}</a>` : ''}
                 <div class="message-bubble ${isOwnMessage ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-800'}">
                     ${msg.image ? `<img src="${msg.image}" class="rounded-lg max-w-xs h-auto my-2">` : ''}
                     ${msg.text ? `<p class="text-sm">${msg.text}</p>` : ''}

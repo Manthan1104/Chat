@@ -1,7 +1,9 @@
 // public/profile.js
 document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('chat-token');
-    const username = localStorage.getItem('chat-username');
+    const urlParams = new URLSearchParams(window.location.search);
+const profileUsername = urlParams.get('user');
+const username = profileUsername || localStorage.getItem('chat-username');
 
     if (!token || !username) {
         window.location.href = '/login.html';
