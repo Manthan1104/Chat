@@ -1,90 +1,29 @@
 /* public/profile-style.css */
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: #f3f4f6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    margin: 0;
-}
-
-.profile-container {
-    background-color: #ffffff;
-    width: 100%;
-    max-width: 500px;
-    padding: 2.5rem;
-    border-radius: 1.5rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    position: relative;
-    text-align: center;
-}
-
-.back-arrow {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    font-size: 1rem;
-    color: #4f46e5;
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.profile-header {
-    margin-bottom: 2rem;
-}
-
-.avatar-placeholder {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background-color: #4f46e5;
-    color: #ffffff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-}
-
-#profile-name {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0;
-}
-
-#profile-email {
-    color: #6b7280;
-    font-size: 1rem;
-}
-
-.profile-details {
-    text-align: left;
-}
-
-.profile-details h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #111827;
-    border-bottom: 1px solid #e5e7eb;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.detail-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.75rem 0;
-}
-
-.label {
-    font-weight: 500;
-    color: #4b5563;
-}
-
-.value {
-    font-weight: 400;
-    color: #111827;
-}
+:root { --bg-color: #f9fafb; --card-bg-color: #ffffff; --text-primary: #111827; --text-secondary: #6b7280; --border-color: #e5e7eb; --switch-bg: #e5e7eb; --switch-fg: #ffffff; --switch-active-bg: #3b82f6; }
+body.dark-mode { --bg-color: #111827; --card-bg-color: #1f2937; --text-primary: #f9fafb; --text-secondary: #9ca3af; --border-color: #374151; --switch-bg: #4b5563; --switch-fg: #111827; --switch-active-bg: #60a5fa; }
+body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-primary); margin: 0; padding: 1rem; transition: background-color 0.3s, color 0.3s; }
+.container { width: 100%; max-width: 480px; margin: 0 auto; }
+.profile-header { display: flex; align-items: center; margin-bottom: 2rem; }
+.profile-header h1 { flex-grow: 1; text-align: center; font-size: 1.25rem; margin: 0; }
+.back-link { color: var(--text-primary); text-decoration: none; }
+.user-info { text-align: center; margin-bottom: 2rem; }
+.avatar-container { position: relative; display: inline-block; margin-bottom: 1rem; }
+#profile-picture { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border-color); }
+.edit-btn { position: absolute; bottom: 5px; right: 5px; background-color: #4f46e5; color: white; font-size: 0.75rem; padding: 4px 8px; border-radius: 999px; cursor: pointer; }
+.name-container { display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+#profile-name { font-size: 1.5rem; font-weight: 600; margin: 0; }
+#profile-email { color: var(--text-secondary); margin: 0.25rem 0 0 0; }
+#admin-badge { background-color: #10b981; color: white; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 999px; }
+.hidden { display: none; }
+.settings-group { background-color: var(--card-bg-color); border-radius: 1rem; padding: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+.group-title { font-weight: 600; color: var(--text-secondary); padding: 0.5rem 1rem; text-align: left; }
+.settings-item { display: flex; align-items: center; padding: 1rem; }
+.settings-text { flex-grow: 1; text-align: left; }
+.settings-text h3 { margin: 0; font-size: 1rem; font-weight: 500; }
+.settings-text p { margin: 0; font-size: 0.875rem; color: var(--text-secondary); }
+.switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--switch-bg); transition: .4s; border-radius: 28px; }
+.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: var(--switch-fg); transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--switch-active-bg); }
+input:checked + .slider:before { transform: translateX(22px); }

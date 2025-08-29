@@ -1,4 +1,3 @@
-// public/auth.js
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const signupForm = document.getElementById('signup-form');
@@ -11,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = loginForm.password.value;
 
             try {
-                const response = await fetch('/api/login', {
+                const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, password })
@@ -24,11 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('chat-user-role', result.role);
                     window.location.href = '/index.html';
                 } else {
-                    showInlineError(loginForm, result.error || 'Login failed.');
+                    alert(result.error || 'Login failed.');
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showInlineError(loginForm, 'An error occurred. Please try again.');
+                alert('An error occurred. Please try again.');
             }
         });
     }
@@ -38,12 +37,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const monthSelect = document.getElementById('dob-month');
         const daySelect = document.getElementById('dob-day');
         const yearSelect = document.getElementById('dob-year');
-
-        populateDateDropdowns();
-
         const nameInput = document.getElementById('name');
         const emailInput = document.getElementById('email');
 
+        // --- Date Dropdown Population ---
+        function populateDateDropdowns() {
+            const currentYear = new Date().getFullYear();
+            for (let i = currentYear; i >= currentYear - 100; i--) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                yearSelect.appendChild(option);
+            }
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            months.forEach((month, index) => {
+                const option = document.createElement('option');
+                option.value = (index + 1).toString().padStart(2, '0');
+                option.textContent = month;
+                monthSelect.appendChild(option);
+            });
+            for (let i = 1; i <= 31; i++) {
+                const option = document.createElement('option');
+                option.value = i.toString().padStart(2, '0');
+                option.textContent = i;
+                daySelect.appendChild(option);
+            }
+        }
+        populateDateDropdowns();
+        
+        // --- Real-time Validation ---
         async function checkAvailability() {
             clearFeedback();
             const name = nameInput.value.trim();
@@ -51,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!name && !email) return;
 
             try {
-                const response = await fetch('/api/check-user', {
+                const response = await fetch('/api/auth/check-user', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, email })
@@ -72,20 +94,16 @@ document.addEventListener('DOMContentLoaded', () => {
         nameInput.addEventListener('blur', checkAvailability);
         emailInput.addEventListener('blur', checkAvailability);
 
+        // --- Form Submission ---
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            clearFeedback();
-
-            const name = nameInput.value.trim();
-            const email = emailInput.value.trim();
+            const name = signupForm.name.value.trim();
+            const email = signupForm.email.value.trim();
             const password = signupForm.password.value;
-            const year = yearSelect.value;
-            const month = monthSelect.value.padStart(2, '0');
-            const day = daySelect.value.padStart(2, '0');
-            const dob = `${year}-${month}-${day}`;
+            const dob = `${yearSelect.value}-${monthSelect.value}-${daySelect.value}`;
 
             try {
-                const response = await fetch('/api/signup', {
+                const response = await fetch('/api/auth/signup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, email, password, dob })
@@ -96,41 +114,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Signup successful! Please log in.');
                     window.location.href = '/login.html';
                 } else {
-                    showInlineError(signupForm, result.error || 'Signup failed.');
+                    alert(`Signup failed: ${result.error || 'Please try again.'}`);
                 }
             } catch (error) {
                 console.error('Signup error:', error);
-                showInlineError(signupForm, 'An error occurred. Please try again.');
+                alert('An error occurred. Please try again.');
             }
         });
 
-        function populateDateDropdowns() {
-            const currentYear = new Date().getFullYear();
-            for (let i = currentYear; i >= currentYear - 100; i--) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = i;
-                yearSelect.appendChild(option);
-            }
-            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            months.forEach((month, index) => {
-                const option = document.createElement('option');
-                option.value = index + 1;
-                option.textContent = month;
-                monthSelect.appendChild(option);
-            });
-            for (let i = 1; i <= 31; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = i;
-                daySelect.appendChild(option);
-            }
-        }
-
+        // --- Helper Functions for Feedback ---
         function clearFeedback() {
             document.querySelectorAll('.feedback').forEach(el => el.remove());
-            const errorEl = document.querySelector('.form-error');
-            if (errorEl) errorEl.remove();
         }
 
         function showFeedback(input, message, color) {
@@ -142,15 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
             feedback.style.display = 'block';
             feedback.style.marginTop = '4px';
             input.after(feedback);
-        }
-
-        function showInlineError(form, message) {
-            const error = document.createElement('div');
-            error.className = 'form-error';
-            error.style.color = 'red';
-            error.style.marginTop = '10px';
-            error.textContent = message;
-            form.appendChild(error);
         }
     }
 });

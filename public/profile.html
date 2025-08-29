@@ -3,38 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile | Chat App</title>
+    <title>Profile | Chat App</title>
     <link rel="stylesheet" href="profile-style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
-    <div class="profile-container">
-        <a href="/index.html" class="back-arrow">&larr; Back to Chat</a>
-        <div class="profile-header">
+<body class="light"> <!-- Theme will be applied by JS -->
+    <div class="container">
+        <header class="profile-header">
+            <a href="/index.html" class="back-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </a>
+            <h1>Profile</h1>
+        </header>
+
+        <!-- CORRECTED USER INFO SECTION -->
+        <section class="user-info">
             <div class="avatar-container">
-                <img id="profile-picture" src="https://placehold.co/100x100/6366f1/ffffff?text=A" alt="Profile Picture" class="avatar-image">
-                <label for="picture-upload" class="avatar-edit-button">Edit</label>
-                <input type="file" id="picture-upload" accept="image/*" class="hidden">
+                <img id="profile-picture" src="https://placehold.co/100x100/eeeeee/333333?text=?" alt="Profile Picture">
+                <label for="picture-upload" class="edit-btn">Edit</label>
+                <input type="file" id="picture-upload" class="hidden" accept="image/*">
             </div>
             <div class="name-container">
-                <h1 id="profile-name"></h1>
-                <!-- This badge will be shown for admins -->
+                <h2 id="profile-name">Loading...</h2>
                 <span id="admin-badge" class="hidden">Admin</span>
             </div>
-            <p id="profile-email"></p>
-        </div>
-        <div class="profile-details">
-            <h2>User Information</h2>
-            <div class="detail-item">
-                <span class="label">Date of Birth</span>
-                <span id="profile-dob" class="value"></span>
+            <p id="profile-email">loading@email.com</p>
+        </section>
+
+        <section class="settings-group">
+            <h3 class="group-title">General Settings</h3>
+            <div class="settings-item">
+                <div class="settings-text">
+                    <h3>Mode</h3>
+                    <p>Dark & Light</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider"></span>
+                </label>
             </div>
-            <div class="detail-item">
-                <span class="label">Joined On</span>
-                <span id="profile-joined" class="value"></span>
-            </div>
-        </div>
+        </section>
     </div>
     <script src="profile.js"></script>
 </body>
 </html>
+
