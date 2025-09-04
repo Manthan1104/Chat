@@ -3,48 +3,668 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile | Chat App</title>
-    <link rel="stylesheet" href="profile-style.css">
+    <title data-i18n-key="title">Profile | Chat App</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Your CSS is preserved here... */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f8f9fa; min-height: 100vh; transition: all 0.3s ease; }
+        body.dark { background: #1a1a1a; color: #ffffff; }
+        .container { max-width: 400px; margin: 0 auto; background: #ffffff; min-height: 100vh; position: relative; transition: all 0.3s ease; }
+        body.dark .container { background: #2a2a2a; }
+        .profile-header { display: flex; align-items: center; padding: 20px; border-bottom: 1px solid #e9ecef; }
+        body.dark .profile-header { border-bottom-color: #404040; }
+        .back-link { color: #333; text-decoration: none; }
+        body.dark .back-link { color: #ffffff; }
+        .profile-header h1 { font-size: 20px; font-weight: 600; margin: 0 auto; }
+        .user-info { padding: 40px 20px; text-align: center; }
+        #profile-picture { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #e9ecef; margin-bottom: 20px; cursor: pointer; }
+        body.dark #profile-picture { border-color: #404040; }
+        .name-container { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 8px; }
+        #profile-name { font-size: 24px; font-weight: 600; }
+        #admin-badge { background: #10b981; color: white; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 999px; }
+        #profile-email { font-size: 16px; color: #666; }
+        body.dark #profile-email { color: #999; }
+        
+        .edit-profile-btn { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px; 
+            background: #f8f9fa; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin-top: 20px; 
+            text-decoration: none; 
+            color: inherit;
+            transition: background 0.2s ease;
+        }
+        body.dark .edit-profile-btn { background: #3a3a3a; }
+        .edit-profile-btn:hover { background: #e9ecef; }
+        body.dark .edit-profile-btn:hover { background: #4a4a4a; }
+        
+        .settings-section { padding: 0 20px 20px 20px; }
+        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+        .settings-item { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 16px; margin-bottom: 12px; border-radius: 12px; cursor: pointer; text-decoration: none; color: inherit; transition: background 0.2s ease; }
+        body.dark .settings-item { background: #3a3a3a; }
+        .settings-item:hover { background: #e9ecef; }
+        body.dark .settings-item:hover { background: #4a4a4a; }
+        .settings-content { display: flex; align-items: center; gap: 16px; }
+        .settings-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; }
+        .mode-icon { background: #4a5568; }
+        .language-icon { background: #f6ad55; }
+        .about-icon { background: #3b82f6; font-weight: bold; }
+        .terms-icon { background: #ef4444; font-weight: bold; }
+        .privacy-icon { background: #10b981; }
+        .rate-icon { background: #f59e0b; }
+        .share-icon { background: #8b5cf6; }
+        .settings-text h3 { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+        .settings-text p { font-size: 14px; color: #666; }
+        body.dark .settings-text p { color: #999; }
+        .chevron { color: #999; }
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2196F3; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background: #fff; margin: 15% auto; padding: 30px; border-radius: 16px; width: 90%; max-width: 400px; }
+        body.dark .modal-content { background: #2a2a2a; }
+        .modal h2 { margin-bottom: 20px; }
+        .modal p { margin-bottom: 10px; }
+        .modal input, .modal select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; font-size: 16px; }
+        body.dark .modal input, body.dark .modal select { background: #3a3a3a; border-color: #555; color: white; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; }
+        .btn-primary { background: #2196F3; color: white; }
+        .btn-secondary { background: #e9ecef; color: #333; }
+        body.dark .btn-secondary { background: #404040; color: #ffffff; }
+        .hidden { display: none; }
+        .error { color: #ef4444; font-size: 14px; margin-top: -10px; margin-bottom: 10px; }
+        
+        .loading { opacity: 0.6; pointer-events: none; }
+        .toast { position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 15px 20px; border-radius: 8px; z-index: 1001; opacity: 0; transform: translateX(100%); transition: all 0.3s ease; }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast.error { background: #ef4444; }
+
+        /* Style for the file input button */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8f9fa;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.2s ease;
+        }
+        body.dark .file-input-button { background: #3a3a3a; }
+        .file-input-button:hover { background: #e9ecef; }
+        body.dark .file-input-button:hover { background: #4a4a4a; }
+    </style>
 </head>
-<body class="light"> <!-- Theme will be applied by JS -->
+<body>
     <div class="container">
         <header class="profile-header">
             <a href="/index.html" class="back-link">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
             </a>
-            <h1>Profile</h1>
+            <h1 data-i18n-key="profileTitle">Profile</h1>
         </header>
 
-        <!-- CORRECTED USER INFO SECTION -->
         <section class="user-info">
             <div class="avatar-container">
-                <img id="profile-picture" src="https://placehold.co/100x100/eeeeee/333333?text=?" alt="Profile Picture">
-                <label for="picture-upload" class="edit-btn">Edit</label>
-                <input type="file" id="picture-upload" class="hidden" accept="image/*">
+                 <img id="profile-picture" alt="Profile Picture">
+                 <div class="file-input-wrapper">
+                    <button class="file-input-button" data-i18n-key="changePicture">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-camera"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        Change Picture
+                    </button>
+                    <input type="file" id="picture-upload" accept="image/*">
+                </div>
+                <!-- Take Picture Button and hidden input -->
+                <div class="file-input-wrapper" style="margin-top: 10px;">
+                    <button class="file-input-button" id="take-picture-btn" type="button" data-i18n-key="takePicture">
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="feather feather-camera"
+                        >
+                            <path
+                                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+                            ></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        Take Picture
+                    </button>
+                    <input type="file" id="camera-upload" accept="image/*" capture="environment" style="display: none" />
+                </div>
             </div>
-            <div class="name-container">
+             <div class="name-container">
                 <h2 id="profile-name">Loading...</h2>
                 <span id="admin-badge" class="hidden">Admin</span>
             </div>
             <p id="profile-email">loading@email.com</p>
+            
         </section>
 
-        <section class="settings-group">
-            <h3 class="group-title">General Settings</h3>
+        <section class="settings-section">
+            <h3 class="section-title" data-i18n-key="generalSettings">General Settings</h3>
+
             <div class="settings-item">
-                <div class="settings-text">
-                    <h3>Mode</h3>
-                    <p>Dark & Light</p>
+                <div class="settings-content">
+                    <div class="settings-icon mode-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div>
+                    <div class="settings-text"><h3 data-i18n-key="mode">Mode</h3><p data-i18n-key="modeDescription">Dark & Light</p></div>
                 </div>
-                <label class="switch">
-                    <input type="checkbox" id="theme-toggle">
-                    <span class="slider"></span>
-                </label>
+                <label class="switch"><input type="checkbox" id="theme-toggle"><span class="slider"></span></label>
             </div>
+
+            <a href="#" id="language-btn" class="settings-item">
+                <div class="settings-content">
+                    <div class="settings-icon language-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+                    <div class="settings-text"><h3 data-i18n-key="language">Language</h3></div>
+                </div>
+                <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+            
+            <a href="#" id="about-btn" class="settings-item">
+                <div class="settings-content">
+                    <div class="settings-icon about-icon"><span>?</span></div>
+                    <div class="settings-text"><h3 data-i18n-key="about">About</h3></div>
+                </div>
+                <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+            
+            <a href="#" id="terms-btn" class="settings-item">
+                <div class="settings-content">
+                    <div class="settings-icon terms-icon"><span>!</span></div>
+                    <div class="settings-text"><h3 data-i18n-key="terms">Terms & Conditions</h3></div>
+                </div>
+                <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+            
+            <a href="#" id="privacy-btn" class="settings-item">
+                <div class="settings-content">
+                    <div class="settings-icon privacy-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><circle cx="12" cy="16" r="1"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+                    <div class="settings-text"><h3 data-i18n-key="privacy">Privacy Policy</h3></div>
+                </div>
+                <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+            
+            <a href="#" id="rate-btn" class="settings-item">
+                <div class="settings-content">
+                    <div class="settings-icon rate-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg></div>
+                    <div class="settings-text"><h3 data-i18n-key="rate">Rate This App</h3></div>
+                </div>
+                <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
+            
+            <a href="#" id="share-btn" class="settings-item">
+                <div class="settings-content">
+                    <div class="settings-icon share-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></div>
+                    <div class="settings-text"><h3 data-i18n-key="share">Share This App</h3></div>
+                </div>
+                <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </a>
         </section>
     </div>
-    <script src="profile.js"></script>
+
+    <!-- Removed Edit Profile Modal -->
+
+    <div id="language-modal" class="modal">
+        <div class="modal-content">
+            <h2 data-i18n-key="languageModalTitle">Language Settings</h2>
+            <p data-i18n-key="languageModalDesc">Choose your preferred language for the app interface.</p>
+            <select id="language-select">
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+                <option value="pa">Punjabi</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="cancel-lang-btn" data-i18n-key="cancel">Cancel</button>
+                <button class="btn btn-primary" id="save-lang-btn" data-i18n-key="save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <h2 data-i18n-key="about">About</h2>
+            <p><strong data-i18n-key="appVersion">Chat App v1.0.0</strong></p>
+            <p data-i18n-key="aboutDesc">A modern messaging application built with love. Connect with friends, share moments, and stay in touch with the people who matter most.</p>
+            <p data-i18n-key="copyright">© 2025 Manthan Garg. All rights reserved.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary close-modal-btn" data-i18n-key="close">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="termsModal" class="modal">
+        <div class="modal-content">
+            <h2 data-i18n-key="terms">Terms & Conditions</h2>
+            <p data-i18n-key="termsDesc1">By using this app, you agree to our terms and conditions. Please read carefully before proceeding.</p>
+            <p data-i18n-key="termsDesc2">These terms govern your use of our service and outline your rights and responsibilities as a user.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary close-modal-btn" data-i18n-key="close">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="privacyModal" class="modal">
+        <div class="modal-content">
+            <h2 data-i18n-key="privacy">Privacy Policy</h2>
+            <p data-i18n-key="privacyDesc1">Your privacy is important to us. This policy explains how we collect, use, and protect your personal information.</p>
+            <p data-i18n-key="privacyDesc2">We are committed to keeping your data secure and will never share it without your consent.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-primary close-modal-btn" data-i18n-key="close">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="rateModal" class="modal">
+        <div class="modal-content">
+            <h2 data-i18n-key="rate">Rate This App</h2>
+            <p data-i18n-key="rateDesc">We'd love to hear your feedback! Please rate our app and let us know how we can improve.</p>
+            <div style="text-align: center; margin: 20px 0;">
+                <span style="font-size: 30px;">⭐⭐⭐⭐⭐</span>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary close-modal-btn" data-i18n-key="later">Later</button>
+                <button id="rate-now-btn" class="btn btn-primary" data-i18n-key="rateNow">Rate Now</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- TRANSLATION DICTIONARY ---
+            const translations = {
+                en: {
+                    title: "Profile | Chat App", profileTitle: "Profile", generalSettings: "General Settings",
+                    mode: "Mode", modeDescription: "Dark & Light", language: "Language",
+                    languageModalTitle: "Language Settings", languageModalDesc: "Choose your preferred language.",
+                    cancel: "Cancel", save: "Save", changePicture: "Change Picture",
+                    about: "About", terms: "Terms & Conditions",
+                    privacy: "Privacy Policy", rate: "Rate This App", share: "Share This App",
+                    close: "Close", later: "Later", rateNow: "Rate Now",
+                    appVersion: "Chat App v1.0.0", 
+                    aboutDesc: "A modern messaging application built with love. Connect with friends, share moments, and stay in touch with the people who matter most.",
+                    copyright: "© 2025 Manthan Garg. All rights reserved.",
+                    termsDesc1: "By using this app, you agree to our terms and conditions. Please read carefully before proceeding.",
+                    termsDesc2: "These terms govern your use of our service and outline your rights and responsibilities as a user.",
+                    privacyDesc1: "Your privacy is important to us. This policy explains how we collect, use, and protect your personal information.",
+                    privacyDesc2: "We are committed to keeping your data secure and will never share it without your consent.",
+                    rateDesc: "We'd love to hear your feedback! Please rate our app and let us know how we can improve."
+                },
+                hi: {
+                    title: "प्रोफ़ाइल | चैट ऐप", profileTitle: "प्रोफ़ाइल", generalSettings: "सामान्य सेटिंग्स",
+                    mode: "मोड", modeDescription: "डार्क और लाइट", language: "भाषा",
+                    languageModalTitle: "भाषा सेटिंग्स", languageModalDesc: "अपनी पसंदीदा भाषा चुनें।",
+                    cancel: "रद्द करें", save: "सहेजें", changePicture: "चित्र बदलें",
+                    about: "के बारे में", terms: "नियम और शर्तें",
+                    privacy: "गोपनीयता नीति", rate: "ऐप को रेट करें", share: "ऐप साझा करें",
+                    close: "बंद करें", later: "बाद में", rateNow: "अभी रेट करें",
+                    appVersion: "चैट ऐप v1.0.0",
+                    aboutDesc: "प्रेम से बना एक आधुनिक संदेश ऐप। दोस्तों से जुड़ें, पल साझा करें, और उन लोगों के संपर्क में रहें जो सबसे महत्वपूर्ण हैं।",
+                    copyright: "© 2025 मंथन गर्ग। सभी अधिकार सुरक्षित।",
+                    termsDesc1: "इस ऐप का उपयोग करके, आप हमारे नियमों और शर्तों से सहमत हैं।",
+                    termsDesc2: "ये नियम आपकी सेवा के उपयोग को नियंत्रित करते हैं।",
+                    privacyDesc1: "आपकी गोपनीयता हमारे लिए महत्वपूर्ण है।",
+                    privacyDesc2: "हम आपके डेटा को सुरक्षित रखने के लिए प्रतिबद्ध हैं।",
+                    rateDesc: "हमें आपकी प्रतिक्रिया सुनना अच्छा लगेगा!"
+                },
+                pa: {
+                    title: "ਪ੍ਰੋਫਾਈਲ | ਚੈਟ ਐਪ", profileTitle: "ਪ੍ਰੋਫਾਈਲ", generalSettings: "ਆਮ ਸੈਟਿੰਗਾਂ",
+                    mode: "ਮੋਡ", modeDescription: "ਡਾਰਕ ਅਤੇ ਲਾਈਟ", language: "ਭਾਸ਼ਾ",
+                    languageModalTitle: "ਭਾਸ਼ਾ ਸੈਟਿੰਗਾਂ", languageModalDesc: "ਆਪਣੀ ਪਸੰਦੀਦਾ ਭਾਸ਼ਾ ਚੁਣੋ।",
+                    cancel: "ਰੱਦ ਕਰੋ", save: "ਸੁਰੱਖਿਅਤ ਕਰੋ", changePicture: "ਤਸਵੀਰ ਬਦਲੋ",
+                    about: "ਬਾਰੇ", terms: "ਨਿਯਮ ਅਤੇ ਸ਼ਰਤਾਂ",
+                    privacy: "ਪ੍ਰਾਈਵੇਸੀ ਨੀਤੀ", rate: "ਐਪ ਨੂੰ ਰੇਟ ਕਰੋ", share: "ਐਪ ਸਾਂਝਾ ਕਰੋ",
+                    close: "ਬੰਦ ਕਰੋ", later: "ਬਾਅਦ ਵਿੱਚ", rateNow: "ਹੁਣ ਰੇਟ ਕਰੋ",
+                    appVersion: "ਚੈਟ ਐਪ v1.0.0",
+                    aboutDesc: "ਪਿਆਰ ਨਾਲ ਬਣਿਆ ਇੱਕ ਆਧੁਨਿਕ ਸੰਦੇਸ਼ ਐਪ।",
+                    copyright: "© 2025 ਮੰਥਨ ਗਰਗ। ਸਾਰੇ ਅਧਿਕਾਰ ਸੁਰੱਖਿਅਤ।",
+                    termsDesc1: "ਇਸ ਐਪ ਦੀ ਵਰਤੋਂ ਕਰਕੇ, ਤੁਸੀਂ ਸਾਡੇ ਨਿਯਮਾਂ ਨਾਲ ਸਹਿਮਤ ਹੋ।",
+                    termsDesc2: "ਇਹ ਨਿਯਮ ਤੁਹਾਡੀ ਸੇਵਾ ਦੀ ਵਰਤੋਂ ਨੂੰ ਨਿਯੰਤਰਿਤ ਕਰਦੇ ਹਨ।",
+                    privacyDesc1: "ਤੁਹਾਡੀ ਪ੍ਰਾਈਵੇਸੀ ਸਾਡੇ ਲਈ ਮਹੱਤਵਪੂਰਨ ਹੈ।",
+                    privacyDesc2: "ਅਸੀਂ ਤੁਹਾਡੇ ਡੇਟਾ ਨੂੰ ਸੁਰੱਖਿਅਤ ਰੱਖਣ ਲਈ ਵਚਨਬੱਧ ਹਾਂ।",
+                    rateDesc: "ਅਸੀਂ ਤੁਹਾਡੀ ਪ੍ਰਤੀਕਿਰਿਆ ਸੁਣਨਾ ਪਸੰਦ ਕਰਾਂਗੇ!"
+                }
+            };
+
+            // --- ELEMENT SELECTORS ---
+            const body = document.body;
+            const themeToggle = document.getElementById('theme-toggle');
+            const profilePicture = document.getElementById('profile-picture');
+            const profileName = document.getElementById('profile-name');
+            const profileEmail = document.getElementById('profile-email');
+            const adminBadge = document.getElementById('admin-badge');
+            const languageBtn = document.getElementById('language-btn');
+            const languageModal = document.getElementById('language-modal');
+            const languageSelect = document.getElementById('language-select');
+            const saveLangBtn = document.getElementById('save-lang-btn');
+            const cancelLangBtn = document.getElementById('cancel-lang-btn');
+            
+            // Profile Picture Upload
+            const pictureUpload = document.getElementById('picture-upload');
+    const takePictureBtn = document.getElementById('take-picture-btn');
+    const cameraUpload = document.getElementById('camera-upload');
+            
+            // Other Modal Elements
+            const aboutBtn = document.getElementById('about-btn');
+            const termsBtn = document.getElementById('terms-btn');
+            const privacyBtn = document.getElementById('privacy-btn');
+            const rateBtn = document.getElementById('rate-btn');
+            const shareBtn = document.getElementById('share-btn');
+            const aboutModal = document.getElementById('aboutModal');
+            const termsModal = document.getElementById('termsModal');
+            const privacyModal = document.getElementById('privacyModal');
+            const rateModal = document.getElementById('rateModal');
+            const closeModalBtns = document.querySelectorAll('.close-modal-btn');
+            const rateNowBtn = document.getElementById('rate-now-btn');
+            const toast = document.getElementById('toast');
+
+            // --- AUTH & USER INFO ---
+            const token = localStorage.getItem('chat-token');
+            const urlParams = new URLSearchParams(window.location.search);
+            const profileUsername = urlParams.get('user') || localStorage.getItem('chat-username');
+            let currentUserData = {};
+            
+            if (!token || !profileUsername) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            // --- UTILITY FUNCTIONS ---
+            function showToast(message, isError = false) {
+                toast.textContent = message;
+                toast.className = `toast ${isError ? 'error' : ''} show`;
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+
+            function showModal(modal) {
+                modal.style.display = 'block';
+            }
+
+            function hideModal(modal) {
+                modal.style.display = 'none';
+            }
+
+            // --- LANGUAGE FUNCTIONALITY ---
+            let currentLanguage = localStorage.getItem('language') || 'en';
+            
+            function setLanguage(lang) {
+                currentLanguage = lang;
+                localStorage.setItem('language', lang);
+                document.querySelectorAll('[data-i18n-key]').forEach(elem => {
+                    const key = elem.getAttribute('data-i18n-key');
+                    if(translations[lang]?.[key]) {
+                        elem.textContent = translations[lang][key];
+                    }
+                });
+                
+                // Update placeholders (if any remain after removing edit profile)
+                document.querySelectorAll('[data-i18n-placeholder]').forEach(elem => {
+                    const key = elem.getAttribute('data-i18n-placeholder');
+                    if(translations[lang]?.[key]) {
+                        elem.placeholder = translations[lang][key];
+                    }
+                });
+                
+                document.title = translations[lang]?.['title'] || 'Profile | Chat App';
+            }
+
+            // Language Modal Events
+            languageBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showModal(languageModal);
+                languageSelect.value = currentLanguage;
+            });
+
+            cancelLangBtn.addEventListener('click', () => {
+                hideModal(languageModal);
+            });
+
+            saveLangBtn.addEventListener('click', () => {
+                setLanguage(languageSelect.value);
+                hideModal(languageModal);
+                showToast('Language updated successfully!');
+            });
+
+            // --- THEME FUNCTIONALITY ---
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (savedTheme === 'dark') {
+                body.classList.add('dark');
+                themeToggle.checked = true;
+            }
+
+            themeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    body.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    body.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                }
+            });
+
+            // --- PROFILE PICTURE UPLOAD FUNCTIONALITY ---
+            pictureUpload.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Check file size (e.g., max 2MB)
+                const maxSize = 2 * 1024 * 1024; // 2MB
+                if (file.size > maxSize) {
+                    showToast('File size exceeds 2MB limit.', true);
+                    return;
+                }
+
+                // Check file type
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                if (!allowedTypes.includes(file.type)) {
+                    showToast('Only JPEG, PNG, and GIF images are allowed.', true);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                    const base64String = reader.result;
+                    try {
+                        // Add loading state
+                        profilePicture.style.opacity = '0.5';
+                        pictureUpload.disabled = true;
+
+                        const response = await fetch('/api/user/picture', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json', 
+                                'Authorization': `Bearer ${token}` 
+                            },
+                            body: JSON.stringify({ picture: base64String })
+                        });
+
+                        if (response.status === 401 || response.status === 403) {
+                            localStorage.clear();
+                            window.location.href = '/login.html';
+                            return;
+                        }
+
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.message || 'Failed to upload picture');
+                        }
+
+                        profilePicture.src = base64String;
+                        showToast('Profile picture updated successfully!');
+                    } catch (error) { 
+                        console.error('Upload error:', error); 
+                        showToast(error.message || 'Failed to upload picture', true);
+                    } finally {
+                        profilePicture.style.opacity = '1';
+                        pictureUpload.disabled = false;
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+
+
+            // --- PROFILE PICTURE UPLOAD EVENTS ---
+    pictureUpload.previousElementSibling.addEventListener('click', () => {
+        pictureUpload.click();
+    });
+    pictureUpload.addEventListener('change', () => {
+        handleImageUpload(pictureUpload);
+    });
+    // --- TAKE PICTURE (CAMERA) UPLOAD EVENTS ---
+    takePictureBtn.addEventListener('click', () => {
+        cameraUpload.click();
+    });
+    cameraUpload.addEventListener('change', () => {
+        handleImageUpload(cameraUpload);
+    });
+
+            // --- OTHER MODAL FUNCTIONALITY ---
+            aboutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showModal(aboutModal);
+            });
+
+            termsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showModal(termsModal);
+            });
+
+            privacyBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showModal(privacyModal);
+            });
+
+            rateBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showModal(rateModal);
+            });
+
+            shareBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Chat App',
+                        text: 'Check out this amazing chat app!',
+                        url: window.location.origin
+                    }).catch(() => {
+                        fallbackShare();
+                    });
+                } else {
+                    fallbackShare();
+                }
+            });
+
+            function fallbackShare() {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(window.location.origin).then(() => {
+                        showToast('Link copied to clipboard!');
+                    }).catch(() => {
+                        showToast('Failed to copy link', true);
+                    });
+                } else {
+                    showToast('Sharing not supported on this device', true);
+                }
+            }
+
+            // Close modal buttons
+            closeModalBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const modal = btn.closest('.modal');
+                    hideModal(modal);
+                });
+            });
+
+            // Rate now button
+            rateNowBtn.addEventListener('click', () => {
+                // Simulate opening app store or rating page
+                showToast('Thank you for your interest in rating our app!');
+                hideModal(rateModal);
+            });
+
+            // Close modals when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal')) {
+                    hideModal(e.target);
+                }
+            });
+
+            // --- DATA FETCHING & UI POPULATION ---
+            const fetchUserData = async () => {
+                try {
+                    const response = await fetch(`/api/user/${profileUsername}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (response.status === 401 || response.status === 403) {
+                        localStorage.clear();
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    
+                    if (!response.ok) throw new Error('Failed to fetch user data');
+                    
+                    const user = await response.json();
+                    currentUserData = user;
+                    profileName.textContent = user.name;
+                    profileEmail.textContent = user.email;
+                    
+                    if (user.role === 'admin') {
+                        adminBadge.classList.remove('hidden');
+                    } else {
+                        adminBadge.classList.add('hidden');
+                    }
+                    
+                    profilePicture.src = user.profilePicture || 
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=e0e7ff&color=4f46e5&size=100`;
+                        
+                } catch (error) {
+                    console.error('Error fetching profile:', error);
+                    showToast('Could not load profile data', true);
+                }
+            };
+
+            // --- INITIALIZE PAGE ---
+            fetchUserData();
+            setLanguage(currentLanguage);
+        });
+    </script>
 </body>
 </html>
-
