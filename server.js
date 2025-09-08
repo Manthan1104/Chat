@@ -6,13 +6,16 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
-const Message = require('./models/message');
+const CommunityMessage = require('./models/communityMessage');
+const PrivateMessage = require('./models/privateMessage');
+const User = require('./models/user');
+const Group = require('./models/group');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // --- Middleware ---
-app.use(express.json({ limit: '10mb' })); // For handling large base64 images
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 // --- MongoDB Connection ---
@@ -27,9 +30,20 @@ app.use('/api/user', userRoutes);
 // --- WebSocket Server ---
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
-
-// Use a Map to store connected clients: { username -> { ws, role } }
 const clients = new Map();
+
+function broadcastOnlineUsers() {
+    const onlineUsers = Array.from(clients.values(), client => ({
+        name: client.name,
+        profilePicture: client.profilePicture
+    }));
+    const message = JSON.stringify({ type: 'online_users', data: onlineUsers });
+    for (const clientData of clients.values()) {
+        if (clientData.ws.readyState === WebSocket.OPEN) {
+            clientData.ws.send(message);
+        }
+    }
+}
 
 wss.on('connection', (ws) => {
     console.log('Client connected');
@@ -43,82 +57,109 @@ wss.on('connection', (ws) => {
             return;
         }
 
-        const senderInfo = clients.get(parsedMessage.username);
+        if (parsedMessage.type !== 'authenticate' && !ws.user) return;
 
         switch(parsedMessage.type) {
             case 'authenticate':
-                clients.set(parsedMessage.username, { ws, role: parsedMessage.role });
-                console.log(`${parsedMessage.username} (${parsedMessage.role}) authenticated.`);
+                const user = await User.findOne({ name: parsedMessage.username });
+                if (!user) return;
+                ws.user = { name: user.name, role: user.role };
+                clients.set(ws.user.name, { 
+                    ws, 
+                    name: ws.user.name,
+                    role: ws.user.role, 
+                    profilePicture: user.profilePicture 
+                });
+                console.log(`${ws.user.name} (${ws.user.role}) authenticated.`);
+                broadcastOnlineUsers();
                 try {
-                    const history = await Message.find().sort({ timestamp: -1 }).limit(50).exec();
-                    ws.send(JSON.stringify({ type: 'history', data: history.reverse() }));
+                    const history = await CommunityMessage.find({}).sort({ timestamp: 1 }).exec();
+                    ws.send(JSON.stringify({ type: 'history', data: history }));
                 } catch (err) { console.error('Error fetching history:', err); }
                 break;
 
+            case 'get_history':
+                try {
+                    const currentUser = ws.user.name;
+                    const otherUser = parsedMessage.with;
+                    let history;
+                    if (otherUser === 'community') {
+                        history = await CommunityMessage.find({}).sort({ timestamp: 1 }).exec();
+                    } else {
+                        history = await PrivateMessage.find({
+                            $or: [
+                                { sender: currentUser, recipient: otherUser },
+                                { sender: otherUser, recipient: currentUser }
+                            ]
+                        }).sort({ timestamp: 1 }).exec();
+                    }
+                    ws.send(JSON.stringify({ type: 'chat_history', data: history }));
+                } catch (err) { console.error('Error fetching specific history:', err); }
+                break;
+
+            case 'chat_request':
+                const recipientSocket = clients.get(parsedMessage.to)?.ws;
+                if (recipientSocket) {
+                    recipientSocket.send(JSON.stringify({ type: 'incoming_request', from: ws.user.name }));
+                }
+                break;
+
+            case 'request_response':
+                const originalRequesterSocket = clients.get(parsedMessage.to)?.ws;
+                if (originalRequesterSocket) {
+                    originalRequesterSocket.send(JSON.stringify({
+                        type: 'response_received',
+                        from: ws.user.name,
+                        response: parsedMessage.response
+                    }));
+                }
+                break;
+
+            case 'private_message':
+                const recipientPrivateSocket = clients.get(parsedMessage.recipient)?.ws;
+                if (recipientPrivateSocket) {
+                    const newMessage = new PrivateMessage({
+                        sender: ws.user.name,
+                        recipient: parsedMessage.recipient,
+                        text: parsedMessage.text,
+                        image: parsedMessage.image
+                    });
+                    await newMessage.save();
+                    recipientPrivateSocket.send(JSON.stringify({ type: 'private_message', data: newMessage }));
+                    ws.send(JSON.stringify({ type: 'private_message', data: newMessage }));
+                }
+                break;
+            
             case 'message':
-                const newMessage = new Message({
-                    username: parsedMessage.username,
+                const newMessage = new CommunityMessage({
+                    username: ws.user.name,
                     text: parsedMessage.text,
                     image: parsedMessage.image
                 });
                 await newMessage.save();
                 broadcast({ type: 'message', data: newMessage });
                 break;
-
-            case 'deleteMessage':
-                if (!senderInfo) return;
-                try {
-                    const msgToDelete = await Message.findById(parsedMessage.id);
-                    if (msgToDelete && (senderInfo.role === 'admin' || msgToDelete.username === parsedMessage.username)) {
-                        await Message.findByIdAndDelete(parsedMessage.id);
-                        broadcast({ type: 'messageDeleted', id: parsedMessage.id });
-                    }
-                } catch (err) { console.error('Error deleting message:', err); }
-                break;
-            
-            case 'clearChat':
-                if (senderInfo && senderInfo.role === 'admin') {
-                    await Message.deleteMany({});
-                    broadcast({ type: 'chatCleared' });
-                    console.log(`Chat cleared by admin: ${parsedMessage.username}`);
-                }
-                break;
         }
     });
 
     ws.on('close', () => {
-        // Find and remove the client from the map on disconnect
-        for (let [username, clientData] of clients.entries()) {
-            if (clientData.ws === ws) {
-                clients.delete(username);
-                console.log(`${username} disconnected.`);
-                break;
-            }
+        if (ws.user) {
+            clients.delete(ws.user.name);
+            console.log(`${ws.user.name} disconnected.`);
+            broadcastOnlineUsers();
         }
     });
 
-    ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
-    });
+    ws.on('error', (error) => console.error('WebSocket error:', error));
 });
 
-/**
- * Broadcasts a message to all connected and authenticated clients.
- * This function is now more robust to prevent crashes.
- * @param {object} message - The message object to broadcast.
- */
 function broadcast(message) {
     const data = JSON.stringify(message);
     for (const clientData of clients.values()) {
-        // --- SAFETY CHECK ---
-        // Ensure the client data and WebSocket connection exist and are open before sending
         if (clientData && clientData.ws && clientData.ws.readyState === WebSocket.OPEN) {
             clientData.ws.send(data);
         }
     }
 }
 
-server.listen(port, () => {
-    console.log(`Server is listening on http://localhost:${port}`);
-});
-
+server.listen(port, () => console.log(`Server is listening on http://localhost:${port}`));

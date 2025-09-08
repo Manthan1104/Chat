@@ -2,7 +2,15 @@
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
-    username: String,
+    // For general community messages
+    username: String, 
+    
+    // For private/group messages
+    sender: String,
+    recipient: String, // Can be a username or a group name
+    group: String,
+
+    // Common fields
     text: String,
     image: String,
     timestamp: { type: Date, default: Date.now }
