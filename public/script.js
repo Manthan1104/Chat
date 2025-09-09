@@ -15,12 +15,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const requestMessage = document.getElementById('request-message');
     const acceptBtn = document.getElementById('accept-btn');
     const rejectBtn = document.getElementById('reject-btn');
+    const messageInput = document.getElementById('message-input');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const emojiPicker = document.getElementById('emoji-picker');
     displayUsername.textContent = username;
     
     // --- State Management ---
     let ws;
     let currentChatRecipient = 'community';
     let pendingRequestFrom = null;
+    let typingTimeout;
+    const typers = new Set();
 
     // --- Helper Functions ---
     function formatTimestamp(timestamp) {
@@ -46,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'history':
                 case 'chat_history':
                     messages.innerHTML = '';
-                    message.data.forEach(displayMessage);
+                    message.data.forEach(msg => displayMessage(msg));
                     break;
                 case 'message':
                 case 'private_message':
@@ -57,6 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         (sender === username && recipient === currentChatRecipient)) {
                         displayMessage(message.data);
                     }
+                    break;
+                case 'messageDeleted':
+                    document.getElementById(message.id)?.remove();
                     break;
                 case 'online_users':
                     renderUserList(message.data);
@@ -72,6 +80,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         openChatWith(message.from);
                     } else {
                         alert(`${message.from} rejected your chat request.`);
+                    }
+                    break;
+                case 'typing_start':
+                    if (message.from !== username) typers.add(message.from);
+                    updateTypingIndicator();
+                    break;
+                case 'typing_stop':
+                    typers.delete(message.from);
+                    updateTypingIndicator();
+                    break;
+                case 'message_updated':
+                    const messageElement = document.getElementById(message.data._id);
+                    if (messageElement) {
+                        displayMessage(message.data, messageElement);
                     }
                     break;
             }
@@ -108,25 +130,73 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function displayMessage(msg) {
+    function displayMessage(msg, existingElement = null) {
         const senderName = msg.username || msg.sender;
         const isOwnMessage = senderName === username;
-        const messageElement = document.createElement('div');
-        messageElement.id = msg._id;
-        messageElement.className = `message flex items-start gap-3 ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
+        const isAdmin = userRole === 'admin';
+        const messageType = msg.recipient ? 'private' : 'community';
         const formattedTime = formatTimestamp(msg.timestamp);
 
-        messageElement.innerHTML = `
+        const reactionsHTML = (msg.reactions && msg.reactions.length > 0)
+            ? `<div class="reactions-container">` + msg.reactions.map(r => `<div class="reaction">${r.emoji} ${r.user}</div>`).join('') + `</div>`
+            : '';
+
+        const addReactionButton = `<span class="add-reaction-btn ml-2" data-id="${msg._id}" data-message-type="${messageType}">😊</span>`;
+
+        const messageBubble = `
             <div class="flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[80%]">
                 ${!isOwnMessage ? `<a href="/profile.html?user=${senderName}" class="font-semibold text-sm text-indigo-800 hover:underline">${senderName}</a>` : ''}
                 <div class="min-w-[60px] p-3 rounded-xl ${isOwnMessage ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-800'}">
-                    ${msg.image ? `<img src="${msg.image}" class="rounded-lg max-w-xs h-auto mb-2">` : ''}
+                    ${msg.image ? `<img src="${msg.image}" class="rounded-lg max-w-xs h-auto mb-2" alt="Chat image">` : ''}
                     ${msg.text ? `<p class="text-sm break-words">${msg.text}</p>` : ''}
                 </div>
-                <div class="text-xs text-gray-400 mt-1 px-1">${formattedTime}</div>
+                ${reactionsHTML}
+                <div class="text-xs text-gray-400 mt-1 px-1 flex items-center">${formattedTime} ${addReactionButton}</div>
             </div>`;
-        messages.appendChild(messageElement);
-        messages.scrollTop = messages.scrollHeight;
+        
+        const deleteButton = (isOwnMessage || isAdmin)
+            ? `<button class="delete-btn text-gray-400 hover:text-red-500" data-id="${msg._id}" data-message-type="${messageType}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>`
+            : '<div class="w-4"></div>';
+
+        const finalHTML = isOwnMessage ? `${deleteButton}${messageBubble}` : `${messageBubble}${deleteButton}`;
+        
+        let messageElement = existingElement;
+        if (!messageElement) {
+            messageElement = document.createElement('div');
+            messageElement.id = msg._id;
+            messageElement.className = `message flex items-center gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`;
+            messages.appendChild(messageElement);
+        }
+        
+        messageElement.innerHTML = finalHTML;
+
+        if (!existingElement) { messages.scrollTop = messages.scrollHeight; }
+
+        messageElement.querySelector('.delete-btn')?.addEventListener('click', (e) => {
+            const { id, messageType } = e.currentTarget.dataset;
+            deleteMessage(id, messageType);
+        });
+
+        messageElement.querySelector('.add-reaction-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const rect = e.currentTarget.getBoundingClientRect();
+            emojiPicker.style.left = `${rect.left - 80}px`;
+            emojiPicker.style.top = `${rect.top - 50}px`;
+            emojiPicker.classList.remove('hidden');
+            emojiPicker.dataset.messageId = e.currentTarget.dataset.id;
+            emojiPicker.dataset.messageType = e.currentTarget.dataset.messageType;
+        });
+    }
+
+    function updateTypingIndicator() {
+        if (typers.size === 0) {
+            typingIndicator.textContent = '';
+            return;
+        }
+        const names = Array.from(typers).join(', ');
+        typingIndicator.textContent = `${names} ${typers.size > 1 ? 'are' : 'is'} typing...`;
     }
 
     function openChatWith(username) {
@@ -136,17 +206,23 @@ document.addEventListener('DOMContentLoaded', () => {
         ws.send(JSON.stringify({ type: 'get_history', with: currentChatRecipient }));
     }
     
-    // --- Message Sending ---
     function sendMessage(text = null, image = null) {
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        const messageText = text === null ? document.getElementById('message-input').value.trim() : text;
+        const messageText = text === null ? messageInput.value.trim() : text;
         if (!messageText && !image) return;
         const messagePayload = currentChatRecipient === 'community'
             ? { type: 'message', text: messageText, image }
             : { type: 'private_message', recipient: currentChatRecipient, text: messageText, image };
         ws.send(JSON.stringify(messagePayload));
-        document.getElementById('message-input').value = '';
-        document.getElementById('image-input').value = '';
+        messageInput.value = '';
+        ws.send(JSON.stringify({ type: 'typing_stop', to: currentChatRecipient }));
+        clearTimeout(typingTimeout);
+    }
+
+    function deleteMessage(id, messageType) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'deleteMessage', id, messageType }));
+        }
     }
 
     // --- Event Listeners ---
@@ -160,7 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (clickedUserItem) {
             const selectedUser = clickedUserItem.dataset.username;
             if (selectedUser === currentChatRecipient) return;
-
             if (selectedUser === 'community') {
                 currentChatRecipient = 'community';
                 chatHeader.textContent = 'Community Chat';
@@ -201,6 +276,33 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsDataURL(e.target.files[0]);
         }
     });
+
+    messageInput.addEventListener('input', () => {
+        clearTimeout(typingTimeout);
+        ws.send(JSON.stringify({ type: 'typing_start', to: currentChatRecipient }));
+        typingTimeout = setTimeout(() => {
+            ws.send(JSON.stringify({ type: 'typing_stop', to: currentChatRecipient }));
+        }, 2000);
+    });
+
+    emojiPicker.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (e.target.tagName === 'SPAN') {
+            const emoji = e.target.textContent;
+            const { messageId, messageType } = emojiPicker.dataset;
+            ws.send(JSON.stringify({ type: 'add_reaction', messageId, messageType, emoji }));
+            emojiPicker.classList.add('hidden');
+        }
+    });
+    
+    // CORRECTED: This function and the following listeners will fix the issue.
+    const hidePicker = () => {
+        if (!emojiPicker.classList.contains('hidden')) {
+            emojiPicker.classList.add('hidden');
+        }
+    };
+    document.addEventListener('click', hidePicker);
+    messages.addEventListener('scroll', hidePicker);
 
     connectWebSocket();
 });

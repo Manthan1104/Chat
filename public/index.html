@@ -12,16 +12,42 @@
         .avatar-container { position: relative; margin-right: 0.75rem; }
         .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
         .status-dot { position: absolute; bottom: 0; right: 0; width: 12px; height: 12px; background-color: #22c55e; border-radius: 50%; border: 2px solid white; }
+        
+        /* Styles for Reactions */
+        .reactions-container { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem; justify-content: flex-end; }
+        .reaction { background-color: #eef2ff; border: 1px solid #c7d2fe; border-radius: 999px; padding: 0.1rem 0.5rem; font-size: 0.75rem; }
+        
+        /* CORRECTED: Reaction button is now invisible by default */
+        .add-reaction-btn { cursor: pointer; opacity: 0; transition: opacity 0.2s; }
+        /* It only appears when you hover over the entire message element */
+        .message:hover .add-reaction-btn { opacity: 0.6; }
+        .add-reaction-btn:hover { opacity: 1 !important; }
+
+        /* Styles for the emoji picker pop-up */
+        #emoji-picker {
+            position: fixed; /* Use fixed positioning to avoid scrolling issues */
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            padding: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 0.5rem;
+            z-index: 50;
+        }
+        #emoji-picker span { cursor: pointer; font-size: 1.25rem; transition: transform 0.1s; }
+        #emoji-picker span:hover { transform: scale(1.2); }
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen font-sans">
     <div class="w-full max-w-4xl h-[90vh] flex bg-white rounded-2xl shadow-2xl">
-        
         <aside class="w-1/3 border-r border-gray-200 flex flex-col">
             <header class="p-4 border-b border-gray-200"><h2 class="font-bold text-gray-800">Online Users</h2></header>
             <div id="user-list" class="flex-1 overflow-y-auto p-2"></div>
         </aside>
-
         <main class="w-2/3 flex flex-col">
             <header class="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
                 <h1 id="chat-header" class="text-xl font-bold text-gray-800">Community Chat</h1>
@@ -31,21 +57,17 @@
                 </div>
             </header>
             <div id="messages" class="flex-1 p-6 overflow-y-auto space-y-4"></div>
+            <div id="typing-indicator" class="h-6 px-6 text-sm text-gray-500 italic"></div>
             <form id="message-form" class="p-4 border-t border-gray-200 bg-gray-50">
                 <div class="flex items-center space-x-3">
-                    <label for="image-input" class="p-3 cursor-pointer text-gray-500 hover:text-indigo-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                    </label>
+                    <label for="image-input" class="p-3 cursor-pointer text-gray-500 hover:text-indigo-600"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></label>
                     <input type="file" id="image-input" accept="image/*" class="hidden">
-                    <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" class="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
-                    <button type="submit" class="p-3 font-semibold text-white bg-indigo-600 rounded-full hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition transform hover:scale-105">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                    </button>
+                    <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" class="flex-1 px-4 py-3 border border-gray-300 rounded-full">
+                    <button type="submit" class="p-3 font-semibold text-white bg-indigo-600 rounded-full hover:bg-indigo-700"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button>
                 </div>
             </form>
         </main>
     </div>
-
     <div id="chat-request-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white p-6 rounded-lg shadow-xl text-center w-80">
             <p id="request-message" class="mb-4 text-lg">Someone wants to chat with you.</p>
@@ -55,7 +77,7 @@
             </div>
         </div>
     </div>
-
+    <div id="emoji-picker" class="hidden"><span>👍</span><span>❤️</span><span>😂</span><span>😮</span><span>😢</span><span>🙏</span></div>
     <script src="https://cdn.tailwindcss.com/"></script>
     <script src="script.js"></script>
 </body>

@@ -5,7 +5,12 @@ const privateMessageSchema = new mongoose.Schema({
     recipient: { type: String, required: true },
     text: String,
     image: String,
-    timestamp: { type: Date, default: Date.now }
+    isGift: { type: Boolean, default: false },
+    timestamp: { type: Date, default: Date.now },
+    reactions: [{
+    emoji: String,
+    user: String
+}]
 });
 
 const PrivateMessage = mongoose.model('PrivateMessage', privateMessageSchema);

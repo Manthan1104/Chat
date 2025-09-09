@@ -122,23 +122,87 @@ wss.on('connection', (ws) => {
                         sender: ws.user.name,
                         recipient: parsedMessage.recipient,
                         text: parsedMessage.text,
-                        image: parsedMessage.image
+                        image: parsedMessage.image,
+                        isGift: parsedMessage.isGift || false
                     });
                     await newMessage.save();
                     recipientPrivateSocket.send(JSON.stringify({ type: 'private_message', data: newMessage }));
                     ws.send(JSON.stringify({ type: 'private_message', data: newMessage }));
                 }
                 break;
+
+            case 'typing_start':
+            case 'typing_stop':
+                // Forward typing status without saving to DB
+                if (parsedMessage.to === 'community') {
+                    broadcast({ type: parsedMessage.type, from: ws.user.name }, ws); // Broadcast to all BUT sender
+                } else {
+                    const recipientSocket = clients.get(parsedMessage.to)?.ws;
+                    if (recipientSocket) {
+                        recipientSocket.send(JSON.stringify({ type: parsedMessage.type, from: ws.user.name }));
+                    }
+                }
+                break;
+
+            // NEW: Handle adding a reaction to a message
+            case 'add_reaction':
+                try {
+                    const { messageId, messageType, emoji } = parsedMessage;
+                    const Model = messageType === 'community' ? CommunityMessage : PrivateMessage;
+                    const message = await Model.findById(messageId);
+
+                    if (message) {
+                        // Find if the user has already reacted
+                        const existingReactionIndex = message.reactions.findIndex(r => r.user === ws.user.name);
+                        if (existingReactionIndex > -1) {
+                            // If they click the same emoji, remove reaction. Otherwise, update it.
+                            if (message.reactions[existingReactionIndex].emoji === emoji) {
+                                message.reactions.splice(existingReactionIndex, 1);
+                            } else {
+                                message.reactions[existingReactionIndex].emoji = emoji;
+                            }
+                        } else {
+                            // Add new reaction
+                            message.reactions.push({ emoji, user: ws.user.name });
+                        }
+                        await message.save();
+                        // Broadcast the entire updated message
+                        broadcast({ type: 'message_updated', data: message });
+                    }
+                } catch (err) { console.error("Error adding reaction:", err); }
+                break;
+                
             
             case 'message':
                 const newMessage = new CommunityMessage({
                     username: ws.user.name,
                     text: parsedMessage.text,
-                    image: parsedMessage.image
+                    image: parsedMessage.image,
+                    isGift: parsedMessage.isGift || false
                 });
                 await newMessage.save();
                 broadcast({ type: 'message', data: newMessage });
                 break;
+
+            case 'deleteMessage':
+                try {
+                    const { id, messageType } = parsedMessage;
+                    const Model = messageType === 'community' ? CommunityMessage : PrivateMessage;
+                    
+                    const msgToDelete = await Model.findById(id);
+                    if (!msgToDelete) return;
+
+                    // Check permissions
+                    const sender = msgToDelete.username || msgToDelete.sender;
+                    if (ws.user.role === 'admin' || sender === ws.user.name) {
+                        await Model.findByIdAndDelete(id);
+                        // Notify all clients to remove the message from their UI
+                        broadcast({ type: 'messageDeleted', id: id });
+                    }
+                } catch (err) {
+                    console.error('Error deleting message:', err);
+                }
+                break;    
         }
     });
 
